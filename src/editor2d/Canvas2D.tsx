@@ -150,9 +150,7 @@ export function Canvas2D() {
       renderFurniture(ctx, data.furniture, selectedId);
     }
 
-    if (showLabels) {
-      renderLabels(ctx, data.labels, selectedId);
-    }
+    renderLabels(ctx, data.labels, selectedId, showLabels);
 
     if (drawing) {
       renderDrawingPreview(ctx, drawing);

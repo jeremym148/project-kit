@@ -77,16 +77,26 @@ export function useCanvasInteraction({
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState<PanState | null>(null);
 
-  const getPos = useCallback(
+  // Raw world position (no snap) — for hit testing & selection
+  const getRawPos = useCallback(
     (e: MouseEvent) => {
       const r = canvasRef.current?.getBoundingClientRect();
       if (!r) return { x: 0, y: 0 };
       return {
-        x: snap(toWorld((e.clientX - r.left - pan.x) / zoom)),
-        y: snap(toWorld((e.clientY - r.top - pan.y) / zoom)),
+        x: toWorld((e.clientX - r.left - pan.x) / zoom),
+        y: toWorld((e.clientY - r.top - pan.y) / zoom),
       };
     },
     [canvasRef, pan, zoom]
+  );
+
+  // Snapped world position — for placement & drawing
+  const getPos = useCallback(
+    (e: MouseEvent) => {
+      const raw = getRawPos(e);
+      return { x: snap(raw.x), y: snap(raw.y) };
+    },
+    [getRawPos]
   );
 
   const handleMouseDown = useCallback(
@@ -98,6 +108,7 @@ export function useCanvasInteraction({
       }
 
       const pos = getPos(e);
+      const raw = getRawPos(e); // unsnapped — for precise hit testing
 
       if (tool === 'wall') {
         setDrawing({ x1: pos.x, y1: pos.y, x2: pos.x, y2: pos.y });
@@ -110,13 +121,14 @@ export function useCanvasInteraction({
         addFurniture(f);
         setSelectedId(f.id);
       } else if (tool === 'select') {
+        // Use raw (unsnapped) position for hit testing — much more precise
         // Check openings first (they sit on walls, so check them before walls)
-        const oh = openingHitTest(data.openings, data.walls, pos.x, pos.y, 1.0);
+        const oh = openingHitTest(data.openings, data.walls, raw.x, raw.y, 1.0);
         if (oh) {
           setSelectedId(oh.opening.id);
         } else {
           // Check furniture
-          const fh = furnitureHitTest(data.furniture || [], pos.x, pos.y);
+          const fh = furnitureHitTest(data.furniture || [], raw.x, raw.y);
           if (fh) {
             setSelectedId(fh.id);
             setDragging({
@@ -128,13 +140,13 @@ export function useCanvasInteraction({
             });
           } else {
             // Check walls
-            const hit = wallHitTest(data.walls, pos.x, pos.y);
+            const hit = wallHitTest(data.walls, raw.x, raw.y);
             if (hit) {
               setSelectedId(hit.wall.id);
-              // Check if near an endpoint (for resizing) — threshold 0.6m
-              const d1 = distance(pos.x, pos.y, hit.wall.x1, hit.wall.y1);
-              const d2 = distance(pos.x, pos.y, hit.wall.x2, hit.wall.y2);
-              const epThreshold = 0.6;
+              // Check if near an endpoint (for resizing)
+              const d1 = distance(raw.x, raw.y, hit.wall.x1, hit.wall.y1);
+              const d2 = distance(raw.x, raw.y, hit.wall.x2, hit.wall.y2);
+              const epThreshold = 0.8;
               if (d1 < epThreshold) {
                 setDragging({
                   type: 'wall-endpoint',
@@ -164,7 +176,7 @@ export function useCanvasInteraction({
               }
             } else {
               // Check labels
-              const lh = labelHitTest(data.labels, pos.x, pos.y);
+              const lh = labelHitTest(data.labels, raw.x, raw.y);
               if (lh) {
                 setSelectedId(lh.label.id);
                 setDragging({
@@ -174,7 +186,7 @@ export function useCanvasInteraction({
                   startY: pos.y,
                   origLabel: { cx: lh.label.cx, cy: lh.label.cy },
                 });
-              } else if (terrainHitTest(data.terrain, pos.x, pos.y)) {
+              } else if (terrainHitTest(data.terrain, raw.x, raw.y)) {
                 // Terrain drag
                 setSelectedId(null);
                 setDragging({
@@ -194,7 +206,8 @@ export function useCanvasInteraction({
           }
         }
       } else if (tool === 'door' || tool === 'window') {
-        const hit = wallHitTest(data.walls, pos.x, pos.y);
+        // Use raw for hit testing, but snapped t for position
+        const hit = wallHitTest(data.walls, raw.x, raw.y);
         if (hit) {
           const o =
             tool === 'door'
@@ -205,7 +218,7 @@ export function useCanvasInteraction({
         }
       }
     },
-    [tool, data, pan, zoom, spaceHeld, getPos, addOpening, addLabel, addFurniture, furnitureType, setSelectedId]
+    [tool, data, pan, zoom, spaceHeld, getPos, getRawPos, addOpening, addLabel, addFurniture, furnitureType, setSelectedId]
   );
 
   const handleMouseMove = useCallback(

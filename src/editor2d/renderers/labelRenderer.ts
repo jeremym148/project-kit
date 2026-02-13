@@ -10,12 +10,30 @@ const floorMaterialLabels: Record<FloorMaterial, string> = {
 export function renderLabels(
   ctx: CanvasRenderingContext2D,
   labels: RoomLabel[],
-  selectedId: string | null
+  selectedId: string | null,
+  showDetails = true
 ): void {
   for (const label of labels) {
     const x = toScreen(label.cx);
     const y = toScreen(label.cy);
     const isSelected = label.id === selectedId;
+
+    // When details are hidden, show a small clickable dot
+    if (!showDetails && !isSelected) {
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.beginPath();
+      ctx.arc(x, y, 5, 0, Math.PI * 2);
+      ctx.fill();
+      // Show name as tiny label
+      if (label.name) {
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.font = '9px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(label.name, x, y - 7);
+      }
+      continue;
+    }
 
     // Build display lines
     const lines: string[] = [];

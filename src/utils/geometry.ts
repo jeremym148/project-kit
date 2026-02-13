@@ -1,10 +1,11 @@
 import type { Wall, Opening, RoomLabel } from '../types';
 
-export const GRID_SIZE = 0.5;
+export const GRID_SIZE = 0.5; // visual grid spacing
+export const SNAP_SIZE = 0.1; // positioning snap (10cm)
 export const SCALE = 50;
 
 export function snap(v: number): number {
-  return Math.round(v / GRID_SIZE) * GRID_SIZE;
+  return Math.round(v / SNAP_SIZE) * SNAP_SIZE;
 }
 
 export function toScreen(v: number): number {
@@ -49,7 +50,7 @@ export function wallHitTest(
   walls: Wall[],
   mx: number,
   my: number,
-  threshold = 0.4
+  threshold = 0.6
 ): WallHit | null {
   for (const w of walls) {
     const dx = w.x2 - w.x1;
