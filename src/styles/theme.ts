@@ -33,6 +33,13 @@ export const colors = {
   successBg: 'rgba(52,211,153,0.08)',
   successBorder: 'rgba(52,211,153,0.2)',
 
+  diffAdded: '#34d399',
+  diffAddedBg: 'rgba(52,211,153,0.15)',
+  diffRemoved: '#ef4444',
+  diffRemovedBg: 'rgba(239,68,68,0.15)',
+  diffModified: '#f59e0b',
+  diffModifiedBg: 'rgba(245,158,11,0.15)',
+
   wall3d: '#e8e0d4',
   floor3d: '#c4a882',
   door3d: '#6b4423',

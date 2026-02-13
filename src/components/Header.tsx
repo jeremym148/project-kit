@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { useFloorPlan } from '../store/useFloorPlan';
 import { useEditor } from '../store/useEditor';
+import { useVersionStore } from '../store/useVersionStore';
 import type { ViewMode } from '../types/tools';
 import { exportProjectFile, importProjectFile, clearAutoSave } from '../utils/storage';
 import { colors, fonts } from '../styles/theme';
@@ -31,6 +32,13 @@ export function Header() {
   const toggleCeiling = useEditor((s) => s.toggleCeiling);
   const setShowImport = useEditor((s) => s.setShowImport);
   const setSelectedId = useEditor((s) => s.setSelectedId);
+
+  const showVersionPanel = useVersionStore((s) => s.showVersionPanel);
+  const toggleVersionPanel = useVersionStore((s) => s.toggleVersionPanel);
+  const compareMode = useVersionStore((s) => s.compareMode);
+  const setCompareMode = useVersionStore((s) => s.setCompareMode);
+  const baselineId = useVersionStore((s) => s.baselineId);
+  const saveSnapshot = useVersionStore((s) => s.saveSnapshot);
 
   const detectRooms = useFloorPlan((s) => s.detectRooms);
   const setTerrain = useFloorPlan((s) => s.setTerrain);
@@ -193,6 +201,67 @@ export function Header() {
         >
           {showCeiling ? '⊟ Toit' : '⊞ Toit'}
         </button>
+
+        {/* Separator */}
+        <div style={{ width: 1, height: 20, background: colors.border }} />
+
+        {/* Version controls */}
+        <button
+          onClick={() => {
+            const name = prompt('Nom de la version:', `Version`);
+            if (name) saveSnapshot(name);
+          }}
+          style={{
+            padding: '6px 12px', border: `1px solid ${colors.accentBorder}`, borderRadius: 7,
+            background: colors.accentBgSubtle, color: colors.accent,
+            cursor: 'pointer', fontFamily: fonts.mono, fontSize: 10, fontWeight: 600,
+          }}
+        >
+          💾 Version
+        </button>
+
+        <button
+          onClick={toggleVersionPanel}
+          style={{
+            padding: '6px 12px', border: `1px solid ${showVersionPanel ? colors.accentBorder : 'rgba(255,255,255,0.1)'}`,
+            borderRadius: 7,
+            background: showVersionPanel ? colors.accentBgSubtle : 'rgba(255,255,255,0.04)',
+            color: showVersionPanel ? colors.accent : colors.textMuted,
+            cursor: 'pointer', fontFamily: fonts.mono, fontSize: 10, fontWeight: 600,
+          }}
+        >
+          {showVersionPanel ? '◉ Versions' : '○ Versions'}
+        </button>
+
+        {/* Comparison mode toggle */}
+        <div
+          style={{
+            display: 'flex', background: colors.surface, borderRadius: 7,
+            border: `1px solid ${baselineId ? colors.successBorder : colors.border}`,
+            overflow: 'hidden',
+            opacity: baselineId ? 1 : 0.4,
+            pointerEvents: baselineId ? 'auto' : 'none',
+          }}
+        >
+          {([null, 'side-by-side', 'overlay'] as const).map((mode) => {
+            const label = mode === null ? 'Normal' : mode === 'side-by-side' ? 'Côte à côte' : 'Superposition';
+            const active = compareMode === mode;
+            return (
+              <button
+                key={mode ?? 'off'}
+                onClick={() => setCompareMode(mode)}
+                style={{
+                  padding: '6px 10px', border: 'none', cursor: 'pointer',
+                  fontSize: 9, fontWeight: 600, letterSpacing: 0.5, fontFamily: fonts.mono,
+                  background: active ? colors.successBg : 'transparent',
+                  color: active ? colors.success : colors.textMuted,
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
 
         {/* View mode toggle */}
         <div

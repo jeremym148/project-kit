@@ -266,6 +266,10 @@ export function detectRoomsFromWalls(walls: Wall[]): RoomLabel[] {
       cx: Math.round(c.x * 100) / 100,
       cy: Math.round(c.y * 100) / 100,
       area: Math.round(area * 100) / 100,
+      polygon: face.map((p) => ({
+        x: Math.round(p.x * 100) / 100,
+        y: Math.round(p.y * 100) / 100,
+      })),
     });
   }
 

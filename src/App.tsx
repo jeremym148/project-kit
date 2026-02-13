@@ -1,9 +1,12 @@
 import { useEffect, useCallback } from 'react';
 import { useFloorPlan } from './store/useFloorPlan';
 import { useEditor } from './store/useEditor';
+import { useVersionStore } from './store/useVersionStore';
+import type { CompareMode } from './types';
 import { Header } from './components/Header';
 import { ViewportSplit } from './components/ViewportSplit';
 import { AIImportModal } from './ai/AIImportModal';
+import { AutoSnapshotTimer } from './components/AutoSnapshotTimer';
 import { colors, fonts } from './styles/theme';
 
 export default function App() {
@@ -31,6 +34,25 @@ export default function App() {
       // Delete/Backspace to remove selected (not in inputs)
       if ((e.key === 'Delete' || e.key === 'Backspace') && !isInput) {
         deleteSelected();
+        return;
+      }
+
+      // Ctrl+S / Cmd+S = save version snapshot
+      if ((e.ctrlKey || e.metaKey) && e.key === 's' && !e.shiftKey) {
+        e.preventDefault();
+        const name = prompt('Nom de la version:', `Version`);
+        if (name) useVersionStore.getState().saveSnapshot(name);
+        return;
+      }
+
+      // Ctrl+K / Cmd+K = cycle comparison mode
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const vs = useVersionStore.getState();
+        if (!vs.baselineId) return;
+        const modes: CompareMode[] = [null, 'side-by-side', 'overlay'];
+        const idx = modes.indexOf(vs.compareMode);
+        vs.setCompareMode(modes[(idx + 1) % modes.length] ?? null);
         return;
       }
 
@@ -74,6 +96,7 @@ export default function App() {
     >
       <Header />
       <ViewportSplit />
+      <AutoSnapshotTimer />
       {showImport && (
         <AIImportModal
           onClose={() => setShowImport(false)}

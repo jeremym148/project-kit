@@ -51,19 +51,41 @@ export const barrierMaterial = new THREE.MeshStandardMaterial({
 });
 
 export const parquetMaterial = new THREE.MeshStandardMaterial({
-  color: '#b5834a',
-  roughness: 0.55,
+  color: '#c4a06a',
+  roughness: 0.45,
   metalness: 0.02,
 });
 
 export const carrelageMaterial = new THREE.MeshStandardMaterial({
-  color: '#d1d5db',
-  roughness: 0.3,
-  metalness: 0.05,
+  color: '#c8cdd3',
+  roughness: 0.15,
+  metalness: 0.08,
 });
 
 export const pelouseMaterial = new THREE.MeshStandardMaterial({
-  color: '#4ade80',
-  roughness: 0.9,
+  color: '#5a8f4a',
+  roughness: 0.95,
   metalness: 0,
+});
+
+// Diff comparison materials
+export const diffAddedMaterial = new THREE.MeshStandardMaterial({
+  color: '#34d399',
+  transparent: true,
+  opacity: 0.5,
+  roughness: 0.5,
+});
+
+export const diffRemovedMaterial = new THREE.MeshStandardMaterial({
+  color: '#ef4444',
+  transparent: true,
+  opacity: 0.3,
+  roughness: 0.5,
+});
+
+export const diffModifiedMaterial = new THREE.MeshStandardMaterial({
+  color: '#f59e0b',
+  transparent: true,
+  opacity: 0.5,
+  roughness: 0.5,
 });

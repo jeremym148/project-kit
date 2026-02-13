@@ -43,6 +43,7 @@ export interface RoomLabel {
   cy: number;
   area: number; // m²
   floorMaterial?: FloorMaterial;
+  polygon?: { x: number; y: number }[]; // room boundary vertices (from detection)
 }
 
 export type FurnitureType =
@@ -74,6 +75,33 @@ export interface FloorPlan {
   labels: RoomLabel[];
   furniture: Furniture[];
   terrain?: Terrain;
+}
+
+// ── Version History & Comparison ──
+
+export interface Snapshot {
+  id: string;
+  name: string;
+  timestamp: string;
+  data: FloorPlan;
+  isAuto: boolean;
+}
+
+export type CompareMode = 'side-by-side' | 'overlay' | null;
+
+export type DiffStatus = 'added' | 'removed' | 'modified';
+
+export interface ElementDiff {
+  id: string;
+  status: DiffStatus;
+  type: 'wall' | 'door' | 'window' | 'label' | 'furniture';
+}
+
+export interface FloorPlanDiff {
+  elements: ElementDiff[];
+  addedIds: Set<string>;
+  removedIds: Set<string>;
+  modifiedIds: Set<string>;
 }
 
 export interface AIAnalysisResult {

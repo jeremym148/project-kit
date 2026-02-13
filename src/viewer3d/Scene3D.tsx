@@ -4,10 +4,17 @@ import { useFloorPlan } from '../store/useFloorPlan';
 import { useEditor } from '../store/useEditor';
 import { useOrbitControls } from './useOrbitControls';
 import { updateScene } from './SceneUpdater';
+import { updateDiffScene } from './DiffSceneUpdater';
 import { groundMaterial } from './builders/materials';
 import { colors } from '../styles/theme';
+import type { FloorPlan, FloorPlanDiff } from '../types';
 
-export function Scene3D() {
+interface Scene3DProps {
+  dataOverride?: FloorPlan;
+  diffOverlay?: { baselineData: FloorPlan; diff: FloorPlanDiff } | null;
+}
+
+export function Scene3D({ dataOverride, diffOverlay }: Scene3DProps = {}) {
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -15,8 +22,10 @@ export function Scene3D() {
   const frameRef = useRef<number>(0);
   const [ready, setReady] = useState(false);
 
-  const data = useFloorPlan((s) => s.data);
+  const storeData = useFloorPlan((s) => s.data);
   const showCeiling = useEditor((s) => s.showCeiling);
+
+  const data = dataOverride ?? storeData;
 
   useOrbitControls(cameraRef, rendererRef, ready);
 
@@ -120,8 +129,13 @@ export function Scene3D() {
   useEffect(() => {
     const scene = sceneRef.current;
     if (!scene) return;
-    updateScene(scene, data, showCeiling);
-  }, [data, showCeiling]);
+
+    if (diffOverlay) {
+      updateDiffScene(scene, data, diffOverlay.baselineData, diffOverlay.diff, showCeiling);
+    } else {
+      updateScene(scene, data, showCeiling);
+    }
+  }, [data, showCeiling, diffOverlay]);
 
   return <div ref={mountRef} style={{ width: '100%', height: '100%' }} />;
 }

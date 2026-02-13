@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { useFloorPlan } from '../store/useFloorPlan';
 import { useEditor } from '../store/useEditor';
+import type { FloorPlan, FloorPlanDiff } from '../types';
 import type { PanState } from '../types/tools';
 import { useCanvasInteraction } from './useCanvasInteraction';
 import { renderGrid } from './renderers/gridRenderer';
@@ -10,25 +11,63 @@ import { renderLabels } from './renderers/labelRenderer';
 import { renderFurniture } from './renderers/furnitureRenderer';
 import { renderTerrain } from './renderers/terrainRenderer';
 import { renderDrawingPreview } from './renderers/drawingPreview';
+import { renderDiffOverlay } from './renderers/diffOverlayRenderer';
 import { renderBackgroundImage } from './backgroundImage';
 
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 5;
 const ZOOM_STEP = 0.1;
 
-export function Canvas2D() {
+interface Canvas2DProps {
+  dataOverride?: FloorPlan;
+  diffOverlay?: { baselineData: FloorPlan; diff: FloorPlanDiff } | null;
+  readOnly?: boolean;
+  syncPan?: PanState;
+  syncZoom?: number;
+  onPanZoomChange?: (pan: PanState, zoom: number) => void;
+}
+
+export function Canvas2D({
+  dataOverride,
+  diffOverlay,
+  readOnly,
+  syncPan,
+  syncZoom,
+  onPanZoomChange,
+}: Canvas2DProps = {}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const bgImgRef = useRef<HTMLImageElement | null>(null);
-  const [pan, setPan] = useState<PanState>({ x: 40, y: 30 });
-  const [zoom, setZoom] = useState(1);
+  const [localPan, setLocalPan] = useState<PanState>({ x: 40, y: 30 });
+  const [localZoom, setLocalZoom] = useState(1);
   const [spaceHeld, setSpaceHeld] = useState(false);
 
-  const data = useFloorPlan((s) => s.data);
+  const pan = syncPan ?? localPan;
+  const zoom = syncZoom ?? localZoom;
+
+  const setPan = useCallback(
+    (p: PanState | ((prev: PanState) => PanState)) => {
+      const next = typeof p === 'function' ? p(pan) : p;
+      setLocalPan(next);
+      onPanZoomChange?.(next, zoom);
+    },
+    [pan, zoom, onPanZoomChange]
+  );
+  const setZoom = useCallback(
+    (z: number) => {
+      setLocalZoom(z);
+      onPanZoomChange?.(pan, z);
+    },
+    [pan, onPanZoomChange]
+  );
+
+  const storeData = useFloorPlan((s) => s.data);
   const setData = useFloorPlan((s) => s.setData);
   const addWall = useFloorPlan((s) => s.addWall);
   const addOpening = useFloorPlan((s) => s.addOpening);
   const addLabel = useFloorPlan((s) => s.addLabel);
   const addFurniture = useFloorPlan((s) => s.addFurniture);
+
+  const data = dataOverride ?? storeData;
 
   const tool = useEditor((s) => s.tool);
   const selectedId = useEditor((s) => s.selectedId);
@@ -57,7 +96,7 @@ export function Canvas2D() {
   }, []);
 
   useEffect(() => {
-    if (bgImage) {
+    if (bgImage && !readOnly) {
       const img = new Image();
       img.onload = () => {
         bgImgRef.current = img;
@@ -66,25 +105,35 @@ export function Canvas2D() {
     } else {
       bgImgRef.current = null;
     }
-  }, [bgImage]);
+  }, [bgImage, readOnly]);
 
-  const { drawing, handleMouseDown, handleMouseMove, handleMouseUp } =
-    useCanvasInteraction({
-      canvasRef,
-      data,
-      tool,
-      pan,
-      zoom,
-      spaceHeld,
-      setPan,
-      addWall,
-      addOpening,
-      addLabel,
-      addFurniture,
-      furnitureType,
-      setData,
-      setSelectedId,
-    });
+  const interaction = useCanvasInteraction({
+    canvasRef,
+    data,
+    tool: readOnly ? 'select' : tool,
+    pan,
+    zoom,
+    spaceHeld,
+    setPan: (p) => {
+      if (typeof p === 'function') {
+        setPan(p);
+      } else {
+        setPan(p);
+      }
+    },
+    addWall,
+    addOpening,
+    addLabel,
+    addFurniture,
+    furnitureType,
+    setData,
+    setSelectedId: readOnly ? () => {} : setSelectedId,
+  });
+
+  const drawing = readOnly ? null : interaction.drawing;
+  const handleMouseDown = readOnly ? undefined : interaction.handleMouseDown;
+  const handleMouseMove = readOnly ? undefined : interaction.handleMouseMove;
+  const handleMouseUp = readOnly ? undefined : interaction.handleMouseUp;
 
   // Scroll-wheel zoom centered on mouse
   const handleWheel = useCallback(
@@ -107,7 +156,7 @@ export function Canvas2D() {
       });
       setZoom(newZoom);
     },
-    [zoom, pan]
+    [zoom, pan, setPan, setZoom]
   );
 
   useEffect(() => {
@@ -143,14 +192,19 @@ export function Canvas2D() {
       renderTerrain(ctx, data.terrain);
     }
 
-    renderWalls(ctx, data.walls, selectedId);
-    renderOpenings(ctx, data.openings, data.walls, selectedId);
+    renderWalls(ctx, data.walls, readOnly ? null : selectedId);
+    renderOpenings(ctx, data.openings, data.walls, readOnly ? null : selectedId);
 
     if (data.furniture?.length) {
-      renderFurniture(ctx, data.furniture, selectedId);
+      renderFurniture(ctx, data.furniture, readOnly ? null : selectedId);
     }
 
-    renderLabels(ctx, data.labels, selectedId, showLabels);
+    renderLabels(ctx, data.labels, readOnly ? null : selectedId, showLabels);
+
+    // Diff overlay (for comparison mode)
+    if (diffOverlay) {
+      renderDiffOverlay(ctx, data, diffOverlay.baselineData, diffOverlay.diff);
+    }
 
     if (drawing) {
       renderDrawingPreview(ctx, drawing);
@@ -166,7 +220,7 @@ export function Canvas2D() {
       ctx.fillText(`${Math.round(zoom * 100)}%`, W - 50, H - 10);
       ctx.restore();
     }
-  }, [data, drawing, selectedId, pan, zoom, showLabels]);
+  }, [data, drawing, selectedId, pan, zoom, showLabels, readOnly, diffOverlay]);
 
   useEffect(() => {
     render();
@@ -185,13 +239,15 @@ export function Canvas2D() {
     return () => window.removeEventListener('resize', h);
   }, []);
 
-  const cursor = spaceHeld
-    ? 'grab'
-    : tool === 'wall' || tool === 'label' || tool === 'furniture'
-      ? 'crosshair'
-      : tool === 'select'
-        ? 'default'
-        : 'pointer';
+  const cursor = readOnly
+    ? 'default'
+    : spaceHeld
+      ? 'grab'
+      : tool === 'wall' || tool === 'label' || tool === 'furniture'
+        ? 'crosshair'
+        : tool === 'select'
+          ? 'default'
+          : 'pointer';
 
   return (
     <canvas

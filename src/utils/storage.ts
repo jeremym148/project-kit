@@ -1,7 +1,8 @@
-import type { FloorPlan } from '../types';
+import type { FloorPlan, Snapshot } from '../types';
 
 const STORAGE_KEY = 'floorplan-studio-project';
 const AUTOSAVE_KEY = 'floorplan-studio-autosave';
+const VERSIONS_KEY = 'floorplan-studio-versions';
 
 export interface ProjectFile {
   version: 1;
@@ -66,6 +67,41 @@ function loadCreatedAt(): string {
 
 export function saveProjectName(name: string): void {
   localStorage.setItem(STORAGE_KEY + '-name', name);
+}
+
+// ── Version snapshots persistence ──
+
+interface VersionsPayload {
+  snapshots: Snapshot[];
+  baselineId: string | null;
+}
+
+let versionsDebounce: ReturnType<typeof setTimeout> | null = null;
+
+export function saveVersions(snapshots: Snapshot[], baselineId: string | null): void {
+  if (versionsDebounce) clearTimeout(versionsDebounce);
+  versionsDebounce = setTimeout(() => {
+    try {
+      const payload: VersionsPayload = { snapshots, baselineId };
+      localStorage.setItem(VERSIONS_KEY, JSON.stringify(payload));
+    } catch {
+      // localStorage full — silently ignore
+    }
+  }, 1000);
+}
+
+export function loadVersions(): VersionsPayload | null {
+  try {
+    const raw = localStorage.getItem(VERSIONS_KEY);
+    if (!raw) return null;
+    const payload = JSON.parse(raw) as VersionsPayload;
+    if (Array.isArray(payload.snapshots)) {
+      return payload;
+    }
+  } catch {
+    // Corrupted — ignore
+  }
+  return null;
 }
 
 // ── File export (.floorplan JSON) ──
