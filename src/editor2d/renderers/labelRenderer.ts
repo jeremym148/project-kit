@@ -201,5 +201,33 @@ export function renderLabels(
       ctx.font = isFloorLine ? '9px monospace' : isAreaLine ? '10px monospace' : 'bold 11px monospace';
       ctx.fillText(line, x, y + (i - (lines.length - 1) / 2) * 14);
     });
+
+    // Draw vertex handles when selected and has polygon
+    if (isSelected && label.polygon && label.polygon.length >= 3) {
+      const poly = label.polygon;
+      // Outline
+      ctx.strokeStyle = 'rgba(245,158,11,0.4)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(toScreen(poly[0]!.x), toScreen(poly[0]!.y));
+      for (let i = 1; i < poly.length; i++) {
+        ctx.lineTo(toScreen(poly[i]!.x), toScreen(poly[i]!.y));
+      }
+      ctx.closePath();
+      ctx.stroke();
+
+      // Vertex handles
+      for (const v of poly) {
+        const vx = toScreen(v.x);
+        const vy = toScreen(v.y);
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.arc(vx, vy, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
   }
 }

@@ -10,7 +10,7 @@ export interface DrawingState {
 }
 
 export interface DragState {
-  type: 'wall' | 'wall-endpoint' | 'label' | 'furniture' | 'terrain';
+  type: 'wall' | 'wall-endpoint' | 'label' | 'label-vertex' | 'furniture' | 'terrain';
   itemId: string;
   startX: number;
   startY: number;
@@ -33,6 +33,8 @@ export interface DragState {
     offsetX: number;
     offsetY: number;
   };
+  vertexIndex?: number;
+  origPolygon?: { x: number; y: number }[];
 }
 
 export interface PanState {

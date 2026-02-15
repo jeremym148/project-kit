@@ -1,7 +1,7 @@
 import { useState, useCallback, type MouseEvent } from 'react';
 import type { FloorPlan, RoomLabel, Furniture, FurnitureType, Terrain } from '../types';
 import type { ToolType, DrawingState, DragState, PanState } from '../types/tools';
-import { snap, toWorld, distance, wallHitTest, openingHitTest, labelHitTest } from '../utils/geometry';
+import { snap, toWorld, distance, wallHitTest, openingHitTest, labelHitTest, labelVertexHitTest } from '../utils/geometry';
 import { createWall, createDoor, createWindow, createLabel, createFurniture } from '../utils/defaults';
 
 interface UseCanvasInteractionParams {
@@ -18,6 +18,7 @@ interface UseCanvasInteractionParams {
   addFurniture: (furniture: Furniture) => void;
   furnitureType: FurnitureType;
   setData: (updater: FloorPlan | ((prev: FloorPlan) => FloorPlan)) => void;
+  selectedId: string | null;
   setSelectedId: (id: string | null) => void;
 }
 
@@ -70,6 +71,7 @@ export function useCanvasInteraction({
   addFurniture,
   furnitureType,
   setData,
+  selectedId,
   setSelectedId,
 }: UseCanvasInteractionParams) {
   const [drawing, setDrawing] = useState<DrawingState | null>(null);
@@ -122,6 +124,28 @@ export function useCanvasInteraction({
         setSelectedId(f.id);
       } else if (tool === 'select') {
         // Use raw (unsnapped) position for hit testing — much more precise
+        // Priority: selected label vertices → openings → furniture → walls → labels → terrain
+
+        // If a label is selected and has a polygon, check vertex handles first
+        // (vertices sit on walls, so they must be checked before wallHitTest)
+        const selectedLabel = selectedId
+          ? data.labels.find((l) => l.id === selectedId && l.polygon && l.polygon.length >= 3)
+          : null;
+        if (selectedLabel) {
+          const vh = labelVertexHitTest([selectedLabel], raw.x, raw.y);
+          if (vh) {
+            setDragging({
+              type: 'label-vertex',
+              itemId: vh.label.id,
+              startX: pos.x,
+              startY: pos.y,
+              vertexIndex: vh.vertexIndex,
+              origPolygon: vh.label.polygon!.map((p) => ({ ...p })),
+            });
+            return;
+          }
+        }
+
         // Check openings first (they sit on walls, so check them before walls)
         const oh = openingHitTest(data.openings, data.walls, raw.x, raw.y, 1.0);
         if (oh) {
@@ -218,7 +242,7 @@ export function useCanvasInteraction({
         }
       }
     },
-    [tool, data, pan, zoom, spaceHeld, getPos, getRawPos, addOpening, addLabel, addFurniture, furnitureType, setSelectedId]
+    [tool, data, pan, zoom, spaceHeld, selectedId, getPos, getRawPos, addOpening, addLabel, addFurniture, furnitureType, setSelectedId]
   );
 
   const handleMouseMove = useCallback(
@@ -297,6 +321,20 @@ export function useCanvasInteraction({
                   }
                 : f
             ),
+          }));
+        } else if (dragging.type === 'label-vertex' && dragging.origPolygon != null && dragging.vertexIndex != null) {
+          const vi = dragging.vertexIndex;
+          const newX = snap(dragging.origPolygon[vi]!.x + dx);
+          const newY = snap(dragging.origPolygon[vi]!.y + dy);
+          setData((d) => ({
+            ...d,
+            labels: d.labels.map((l) => {
+              if (l.id !== dragging.itemId || !l.polygon) return l;
+              const newPoly = l.polygon.map((p, i) =>
+                i === vi ? { x: newX, y: newY } : p
+              );
+              return { ...l, polygon: newPoly };
+            }),
           }));
         } else if (dragging.type === 'label' && dragging.origLabel) {
           setData((d) => ({

@@ -127,6 +127,7 @@ export function Canvas2D({
     addFurniture,
     furnitureType,
     setData,
+    selectedId: readOnly ? null : selectedId,
     setSelectedId: readOnly ? () => {} : setSelectedId,
   });
 

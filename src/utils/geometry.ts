@@ -33,6 +33,32 @@ export interface LabelHit {
   label: RoomLabel;
 }
 
+export interface LabelVertexHit {
+  label: RoomLabel;
+  vertexIndex: number;
+}
+
+export function labelVertexHitTest(
+  labels: RoomLabel[],
+  mx: number,
+  my: number,
+  threshold = 0.8
+): LabelVertexHit | null {
+  let best: LabelVertexHit | null = null;
+  let bestDist = threshold;
+  for (const label of labels) {
+    if (!label.polygon || label.polygon.length < 3) continue;
+    for (let i = 0; i < label.polygon.length; i++) {
+      const d = distance(mx, my, label.polygon[i]!.x, label.polygon[i]!.y);
+      if (d < bestDist) {
+        bestDist = d;
+        best = { label, vertexIndex: i };
+      }
+    }
+  }
+  return best;
+}
+
 export function labelHitTest(
   labels: RoomLabel[],
   mx: number,
