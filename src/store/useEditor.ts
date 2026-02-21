@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { ToolType, ViewMode } from '../types/tools';
-import type { FurnitureType } from '../types';
+import type { FurnitureType, TechnicalPointType } from '../types';
 
 interface EditorState {
   tool: ToolType;
@@ -13,12 +13,18 @@ interface EditorState {
   toggleCeiling: () => void;
   showLabels: boolean;
   toggleLabels: () => void;
+  showFurniture: boolean;
+  toggleFurniture: () => void;
+  showTechnical: boolean;
+  toggleTechnical: () => void;
   showImport: boolean;
   setShowImport: (show: boolean) => void;
   bgImage: string | null;
   setBgImage: (img: string | null) => void;
   furnitureType: FurnitureType;
   setFurnitureType: (ft: FurnitureType) => void;
+  technicalPointType: TechnicalPointType;
+  setTechnicalPointType: (tpt: TechnicalPointType) => void;
 }
 
 export const useEditor = create<EditorState>((set) => ({
@@ -32,10 +38,16 @@ export const useEditor = create<EditorState>((set) => ({
   toggleCeiling: () => set((s) => ({ showCeiling: !s.showCeiling })),
   showLabels: true,
   toggleLabels: () => set((s) => ({ showLabels: !s.showLabels })),
+  showFurniture: true,
+  toggleFurniture: () => set((s) => ({ showFurniture: !s.showFurniture })),
+  showTechnical: true,
+  toggleTechnical: () => set((s) => ({ showTechnical: !s.showTechnical })),
   showImport: false,
   setShowImport: (showImport) => set({ showImport }),
   bgImage: null,
   setBgImage: (bgImage) => set({ bgImage }),
   furnitureType: 'table',
   setFurnitureType: (furnitureType) => set({ furnitureType }),
+  technicalPointType: 'outlet',
+  setTechnicalPointType: (technicalPointType) => set({ technicalPointType }),
 }));

@@ -43,6 +43,7 @@ export function loadAutoSave(): FloorPlan | null {
       // Ensure arrays exist (backwards compat)
       if (!project.data.labels) project.data.labels = [];
       if (!project.data.furniture) project.data.furniture = [];
+      if (!project.data.technicalPoints) project.data.technicalPoints = [];
       return project.data;
     }
   } catch {
@@ -138,6 +139,7 @@ export function importProjectFile(file: File): Promise<ProjectFile> {
         if (!project.data.labels) project.data.labels = [];
         if (!project.data.openings) project.data.openings = [];
         if (!project.data.furniture) project.data.furniture = [];
+        if (!project.data.technicalPoints) project.data.technicalPoints = [];
         resolve(project);
       } catch (err) {
         reject(err instanceof Error ? err : new Error('Fichier invalide'));

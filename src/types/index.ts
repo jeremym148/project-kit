@@ -69,11 +69,36 @@ export interface Terrain {
   offsetY: number;
 }
 
+// ── Technical Points ──
+
+export type TechnicalPointType =
+  | 'outlet' | 'switch' | 'ceiling-light' | 'wall-light' | 'electrical-panel'
+  | 'water-supply-cold' | 'water-supply-hot'
+  | 'drain'
+  | 'gas-supply' | 'radiator' | 'boiler';
+
+export type TechnicalDomain = 'electrical' | 'plumbing' | 'drainage' | 'heating';
+
+export interface TechnicalPoint {
+  id: string;
+  type: 'technical-point';
+  pointType: TechnicalPointType;
+  domain: TechnicalDomain;
+  cx: number;
+  cy: number;
+  rotation: number;
+  label?: string;
+  wallId?: string;
+  roomId?: string;
+  pipeSize?: number;
+}
+
 export interface FloorPlan {
   walls: Wall[];
   openings: Opening[];
   labels: RoomLabel[];
   furniture: Furniture[];
+  technicalPoints: TechnicalPoint[];
   terrain?: Terrain;
 }
 

@@ -1,7 +1,7 @@
 import { useFloorPlan } from '../store/useFloorPlan';
 import { useEditor } from '../store/useEditor';
-import type { Wall, Opening, RoomLabel, Furniture, DoorStyle, WindowStyle, WallStyle, FloorMaterial } from '../types';
-import { FURNITURE_DEFAULTS } from '../utils/defaults';
+import type { Wall, Opening, RoomLabel, Furniture, TechnicalPoint, DoorStyle, WindowStyle, WallStyle, FloorMaterial } from '../types';
+import { FURNITURE_DEFAULTS, TECHNICAL_POINT_DEFAULTS } from '../utils/defaults';
 import { snap } from '../utils/geometry';
 import { colors, fonts } from '../styles/theme';
 
@@ -37,6 +37,7 @@ export function PropertiesPanel() {
   const updateOpening = useFloorPlan((s) => s.updateOpening);
   const updateLabel = useFloorPlan((s) => s.updateLabel);
   const updateFurniture = useFloorPlan((s) => s.updateFurniture);
+  const updateTechnicalPoint = useFloorPlan((s) => s.updateTechnicalPoint);
   const deleteItem = useFloorPlan((s) => s.deleteItem);
   const makeCorridor = useFloorPlan((s) => s.makeCorridor);
   const selectedId = useEditor((s) => s.selectedId);
@@ -46,8 +47,9 @@ export function PropertiesPanel() {
   const selectedOpening = data.openings.find((o) => o.id === selectedId);
   const selectedLabel = data.labels.find((l) => l.id === selectedId);
   const selectedFurniture = (data.furniture || []).find((f) => f.id === selectedId);
-  const selectedItem: Wall | Opening | RoomLabel | Furniture | undefined =
-    selectedWall ?? selectedOpening ?? selectedLabel ?? selectedFurniture;
+  const selectedTechnicalPoint = (data.technicalPoints || []).find((tp) => tp.id === selectedId);
+  const selectedItem: Wall | Opening | RoomLabel | Furniture | TechnicalPoint | undefined =
+    selectedWall ?? selectedOpening ?? selectedLabel ?? selectedFurniture ?? selectedTechnicalPoint;
 
   if (!selectedItem) return null;
 
@@ -116,7 +118,9 @@ export function PropertiesPanel() {
           ? 'FENÊTRE'
           : selectedItem.type === 'furniture'
             ? 'MEUBLE'
-            : 'LABEL';
+            : selectedItem.type === 'technical-point'
+              ? 'POINT TECHNIQUE'
+              : 'LABEL';
 
   return (
     <div
@@ -147,6 +151,9 @@ export function PropertiesPanel() {
           : ''}
         {selectedFurniture
           ? ` · ${FURNITURE_DEFAULTS[selectedFurniture.furnitureType].label}`
+          : ''}
+        {selectedTechnicalPoint
+          ? ` · ${TECHNICAL_POINT_DEFAULTS[selectedTechnicalPoint.pointType].label}`
           : ''}
       </div>
 
@@ -443,6 +450,69 @@ export function PropertiesPanel() {
               ))}
             </select>
           </label>
+        </>
+      )}
+
+      {/* ─── Technical point properties ─── */}
+      {selectedTechnicalPoint && (
+        <>
+          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>
+            {TECHNICAL_POINT_DEFAULTS[selectedTechnicalPoint.pointType].label}
+            {' · '}
+            {selectedTechnicalPoint.domain === 'electrical' ? 'Electrique'
+              : selectedTechnicalPoint.domain === 'plumbing' ? 'Plomberie'
+              : selectedTechnicalPoint.domain === 'drainage' ? 'Evacuation'
+              : 'Chauffage'}
+          </div>
+          <label style={labelStyle}>
+            Label
+            <input
+              type="text"
+              value={selectedTechnicalPoint.label || ''}
+              placeholder={TECHNICAL_POINT_DEFAULTS[selectedTechnicalPoint.pointType].label}
+              onChange={(e) =>
+                updateTechnicalPoint(selectedTechnicalPoint.id, { label: e.target.value || undefined })
+              }
+              style={inputStyle}
+            />
+          </label>
+          <label style={labelStyle}>
+            Rotation: {Math.round((selectedTechnicalPoint.rotation * 180) / Math.PI)}°
+            <input
+              type="range"
+              min="0"
+              max={String(Math.PI * 2)}
+              step={String(Math.PI / 12)}
+              value={selectedTechnicalPoint.rotation}
+              onChange={(e) =>
+                updateTechnicalPoint(selectedTechnicalPoint.id, {
+                  rotation: parseFloat(e.target.value),
+                })
+              }
+              style={{ accentColor: colors.accent }}
+            />
+          </label>
+          {selectedTechnicalPoint.pointType === 'drain' && (
+            <label style={labelStyle}>
+              Diametre: {selectedTechnicalPoint.pipeSize ?? 50}mm
+              <input
+                type="range"
+                min="32"
+                max="200"
+                step="1"
+                value={selectedTechnicalPoint.pipeSize ?? 50}
+                onChange={(e) =>
+                  updateTechnicalPoint(selectedTechnicalPoint.id, {
+                    pipeSize: parseInt(e.target.value),
+                  })
+                }
+                style={{ accentColor: colors.accent }}
+              />
+            </label>
+          )}
+          <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9 }}>
+            Position: ({selectedTechnicalPoint.cx.toFixed(1)}, {selectedTechnicalPoint.cy.toFixed(1)})
+          </div>
         </>
       )}
 

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { temporal } from 'zundo';
-import type { FloorPlan, Wall, Opening, RoomLabel, Furniture, Terrain } from '../types';
+import type { FloorPlan, Wall, Opening, RoomLabel, Furniture, TechnicalPoint, Terrain } from '../types';
 import { israeliApartment, createWall } from '../utils/defaults';
 import { detectRoomsFromWalls } from '../utils/roomDetection';
 import { snap } from '../utils/geometry';
@@ -28,6 +28,8 @@ interface FloorPlanState {
   updateLabel: (id: string, updates: Partial<RoomLabel>) => void;
   addFurniture: (furniture: Furniture) => void;
   updateFurniture: (id: string, updates: Partial<Furniture>) => void;
+  addTechnicalPoint: (point: TechnicalPoint) => void;
+  updateTechnicalPoint: (id: string, updates: Partial<TechnicalPoint>) => void;
   deleteItem: (id: string) => void;
   makeCorridor: (wallId: string, width: number) => string[];
   setTerrain: (terrain: Terrain | undefined) => void;
@@ -105,6 +107,21 @@ export const useFloorPlan = create<FloorPlanState>()(
           },
         })),
 
+      addTechnicalPoint: (point) =>
+        set((state) => ({
+          data: { ...state.data, technicalPoints: [...(state.data.technicalPoints || []), point] },
+        })),
+
+      updateTechnicalPoint: (id, updates) =>
+        set((state) => ({
+          data: {
+            ...state.data,
+            technicalPoints: (state.data.technicalPoints || []).map((tp) =>
+              tp.id === id ? { ...tp, ...updates } : tp
+            ),
+          },
+        })),
+
       deleteItem: (id) =>
         set((state) => {
           // Check walls
@@ -134,6 +151,15 @@ export const useFloorPlan = create<FloorPlanState>()(
               data: {
                 ...state.data,
                 furniture: (state.data.furniture || []).filter((f) => f.id !== id),
+              },
+            };
+          }
+          // Check technical points
+          if ((state.data.technicalPoints || []).some((tp) => tp.id === id)) {
+            return {
+              data: {
+                ...state.data,
+                technicalPoints: (state.data.technicalPoints || []).filter((tp) => tp.id !== id),
               },
             };
           }

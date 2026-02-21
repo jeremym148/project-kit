@@ -1,8 +1,8 @@
 import { useState, useCallback, type MouseEvent } from 'react';
-import type { FloorPlan, RoomLabel, Furniture, FurnitureType, Terrain } from '../types';
+import type { FloorPlan, RoomLabel, Furniture, FurnitureType, TechnicalPoint, TechnicalPointType, Terrain } from '../types';
 import type { ToolType, DrawingState, DragState, PanState } from '../types/tools';
 import { snap, toWorld, distance, wallHitTest, openingHitTest, labelHitTest, labelVertexHitTest } from '../utils/geometry';
-import { createWall, createDoor, createWindow, createLabel, createFurniture } from '../utils/defaults';
+import { createWall, createDoor, createWindow, createLabel, createFurniture, createTechnicalPoint } from '../utils/defaults';
 
 interface UseCanvasInteractionParams {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -16,7 +16,9 @@ interface UseCanvasInteractionParams {
   addOpening: (opening: FloorPlan['openings'][0]) => void;
   addLabel: (label: RoomLabel) => void;
   addFurniture: (furniture: Furniture) => void;
+  addTechnicalPoint: (point: TechnicalPoint) => void;
   furnitureType: FurnitureType;
+  technicalPointType: TechnicalPointType;
   setData: (updater: FloorPlan | ((prev: FloorPlan) => FloorPlan)) => void;
   selectedId: string | null;
   setSelectedId: (id: string | null) => void;
@@ -33,6 +35,19 @@ function furnitureHitTest(
     const d = distance(mx, my, f.cx, f.cy);
     const maxDim = Math.max(f.width, f.depth) / 2 + threshold * 0.5;
     if (d < maxDim) return f;
+  }
+  return null;
+}
+
+function technicalPointHitTest(
+  points: TechnicalPoint[],
+  mx: number,
+  my: number,
+  threshold = 0.5
+): TechnicalPoint | null {
+  for (const tp of points) {
+    const d = distance(mx, my, tp.cx, tp.cy);
+    if (d < threshold) return tp;
   }
   return null;
 }
@@ -69,7 +84,9 @@ export function useCanvasInteraction({
   addOpening,
   addLabel,
   addFurniture,
+  addTechnicalPoint,
   furnitureType,
+  technicalPointType,
   setData,
   selectedId,
   setSelectedId,
@@ -122,6 +139,10 @@ export function useCanvasInteraction({
         const f = createFurniture(furnitureType, pos.x, pos.y);
         addFurniture(f);
         setSelectedId(f.id);
+      } else if (tool === 'technical') {
+        const tp = createTechnicalPoint(technicalPointType, pos.x, pos.y);
+        addTechnicalPoint(tp);
+        setSelectedId(tp.id);
       } else if (tool === 'select') {
         // Use raw (unsnapped) position for hit testing — much more precise
         // Priority: selected label vertices → openings → furniture → walls → labels → terrain
@@ -151,6 +172,18 @@ export function useCanvasInteraction({
         if (oh) {
           setSelectedId(oh.opening.id);
         } else {
+          // Check technical points
+          const tph = technicalPointHitTest(data.technicalPoints || [], raw.x, raw.y);
+          if (tph) {
+            setSelectedId(tph.id);
+            setDragging({
+              type: 'technical-point',
+              itemId: tph.id,
+              startX: pos.x,
+              startY: pos.y,
+              origTechnicalPoint: { cx: tph.cx, cy: tph.cy },
+            });
+          } else {
           // Check furniture
           const fh = furnitureHitTest(data.furniture || [], raw.x, raw.y);
           if (fh) {
@@ -228,6 +261,7 @@ export function useCanvasInteraction({
               }
             }
           }
+          }
         }
       } else if (tool === 'door' || tool === 'window') {
         // Use raw for hit testing, but snapped t for position
@@ -242,7 +276,7 @@ export function useCanvasInteraction({
         }
       }
     },
-    [tool, data, pan, zoom, spaceHeld, selectedId, getPos, getRawPos, addOpening, addLabel, addFurniture, furnitureType, setSelectedId]
+    [tool, data, pan, zoom, spaceHeld, selectedId, getPos, getRawPos, addOpening, addLabel, addFurniture, addTechnicalPoint, furnitureType, technicalPointType, setSelectedId]
   );
 
   const handleMouseMove = useCallback(
@@ -307,6 +341,19 @@ export function useCanvasInteraction({
                     y2: snap(dragging.origWall!.y2 + dy),
                   }
                 : w
+            ),
+          }));
+        } else if (dragging.type === 'technical-point' && dragging.origTechnicalPoint) {
+          setData((d) => ({
+            ...d,
+            technicalPoints: (d.technicalPoints || []).map((tp) =>
+              tp.id === dragging.itemId
+                ? {
+                    ...tp,
+                    cx: snap(dragging.origTechnicalPoint!.cx + dx),
+                    cy: snap(dragging.origTechnicalPoint!.cy + dy),
+                  }
+                : tp
             ),
           }));
         } else if (dragging.type === 'furniture' && dragging.origFurniture) {

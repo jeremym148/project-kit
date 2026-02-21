@@ -1,4 +1,4 @@
-export type ToolType = 'select' | 'wall' | 'door' | 'window' | 'label' | 'furniture';
+export type ToolType = 'select' | 'wall' | 'door' | 'window' | 'label' | 'furniture' | 'technical';
 
 export type ViewMode = '2d' | '3d' | 'split';
 
@@ -10,7 +10,7 @@ export interface DrawingState {
 }
 
 export interface DragState {
-  type: 'wall' | 'wall-endpoint' | 'label' | 'label-vertex' | 'furniture' | 'terrain';
+  type: 'wall' | 'wall-endpoint' | 'label' | 'label-vertex' | 'furniture' | 'technical-point' | 'terrain';
   itemId: string;
   startX: number;
   startY: number;
@@ -26,6 +26,10 @@ export interface DragState {
     cy: number;
   };
   origFurniture?: {
+    cx: number;
+    cy: number;
+  };
+  origTechnicalPoint?: {
     cx: number;
     cy: number;
   };

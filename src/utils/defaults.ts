@@ -1,4 +1,4 @@
-import type { Wall, Opening, FloorPlan, RoomLabel, DoorStyle, FurnitureType, Furniture } from '../types';
+import type { Wall, Opening, FloorPlan, RoomLabel, DoorStyle, FurnitureType, Furniture, TechnicalPointType, TechnicalDomain, TechnicalPoint } from '../types';
 import { uid } from './ids';
 
 /** Default dimensions per furniture type: [width, depth, height] in meters */
@@ -17,6 +17,45 @@ export const FURNITURE_DEFAULTS: Record<FurnitureType, { width: number; depth: n
   'cabinet':          { width: 1.00, depth: 0.50, height: 0.80, label: 'Meuble' },
   'fridge':           { width: 0.60, depth: 0.65, height: 1.80, label: 'Frigo' },
 };
+
+/** Default metadata per technical point type */
+export const TECHNICAL_POINT_DEFAULTS: Record<TechnicalPointType, {
+  domain: TechnicalDomain;
+  label: string;
+  pipeSize?: number;
+}> = {
+  'outlet':            { domain: 'electrical', label: 'Prise' },
+  'switch':            { domain: 'electrical', label: 'Interrupteur' },
+  'ceiling-light':     { domain: 'electrical', label: 'Plafonnier' },
+  'wall-light':        { domain: 'electrical', label: 'Applique' },
+  'electrical-panel':  { domain: 'electrical', label: 'Tableau elec.' },
+  'water-supply-cold': { domain: 'plumbing',   label: 'Eau froide' },
+  'water-supply-hot':  { domain: 'plumbing',   label: 'Eau chaude' },
+  'drain':             { domain: 'drainage',   label: 'Evacuation', pipeSize: 50 },
+  'gas-supply':        { domain: 'heating',    label: 'Arrivee gaz' },
+  'radiator':          { domain: 'heating',    label: 'Radiateur' },
+  'boiler':            { domain: 'heating',    label: 'Chaudiere' },
+};
+
+export function createTechnicalPoint(
+  pointType: TechnicalPointType,
+  cx: number,
+  cy: number,
+  rotation = 0
+): TechnicalPoint {
+  const def = TECHNICAL_POINT_DEFAULTS[pointType];
+  return {
+    id: uid('tp'),
+    type: 'technical-point',
+    pointType,
+    domain: def.domain,
+    cx,
+    cy,
+    rotation,
+    label: def.label,
+    pipeSize: def.pipeSize,
+  };
+}
 
 export function createFurniture(
   furnitureType: FurnitureType,
@@ -175,7 +214,7 @@ export function israeliApartment(): FloorPlan {
   windows.push(createWindow(w[7]!.id, 0.7, 1.2));
   windows.push(createWindow(w[5]!.id, 0.5, 1.0));
 
-  return { walls: w, openings: [...doors, ...windows], labels: [], furniture: [] };
+  return { walls: w, openings: [...doors, ...windows], labels: [], furniture: [], technicalPoints: [] };
 }
 
 export function defaultApartment(): FloorPlan {
@@ -198,5 +237,6 @@ export function defaultApartment(): FloorPlan {
     ],
     labels: [],
     furniture: [],
+    technicalPoints: [],
   };
 }

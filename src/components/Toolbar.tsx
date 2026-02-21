@@ -1,8 +1,8 @@
 import { useFloorPlan } from '../store/useFloorPlan';
 import { useEditor } from '../store/useEditor';
 import type { ToolDefinition } from '../types/tools';
-import type { FurnitureType } from '../types';
-import { FURNITURE_DEFAULTS } from '../utils/defaults';
+import type { FurnitureType, TechnicalPointType, TechnicalDomain } from '../types';
+import { FURNITURE_DEFAULTS, TECHNICAL_POINT_DEFAULTS } from '../utils/defaults';
 import { colors, fonts } from '../styles/theme';
 
 const tools: ToolDefinition[] = [
@@ -12,6 +12,7 @@ const tools: ToolDefinition[] = [
   { id: 'window', label: 'Fenêtre', icon: '⊞' },
   { id: 'label', label: 'Label', icon: '◉' },
   { id: 'furniture', label: 'Meuble', icon: '⌂' },
+  { id: 'technical', label: 'Technique', icon: '⚡' },
 ];
 
 const furnitureTypes: { value: FurnitureType; icon: string }[] = [
@@ -37,6 +38,8 @@ export function Toolbar() {
   const setSelectedId = useEditor((s) => s.setSelectedId);
   const furnitureType = useEditor((s) => s.furnitureType);
   const setFurnitureType = useEditor((s) => s.setFurnitureType);
+  const technicalPointType = useEditor((s) => s.technicalPointType);
+  const setTechnicalPointType = useEditor((s) => s.setTechnicalPointType);
   const deleteItem = useFloorPlan((s) => s.deleteItem);
   const reset = useFloorPlan((s) => s.reset);
   const setBgImage = useEditor((s) => s.setBgImage);
@@ -112,6 +115,14 @@ export function Toolbar() {
         </div>
       )}
 
+      {/* Technical point type sub-selector */}
+      {tool === 'technical' && (
+        <TechnicalSubSelector
+          selected={technicalPointType}
+          onSelect={setTechnicalPointType}
+        />
+      )}
+
       <div style={{ flex: 1 }} />
 
       {/* Delete button */}
@@ -146,6 +157,95 @@ export function Toolbar() {
         <span style={{ fontSize: 13 }}>↺</span>
         <span style={{ fontSize: 7 }}>RESET</span>
       </button>
+    </div>
+  );
+}
+
+const technicalDomainGroups: {
+  domain: TechnicalDomain;
+  label: string;
+  items: { value: TechnicalPointType; icon: string }[];
+}[] = [
+  {
+    domain: 'electrical', label: 'ELEC',
+    items: [
+      { value: 'outlet', icon: '⊙' },
+      { value: 'switch', icon: '⊘' },
+      { value: 'ceiling-light', icon: '☀' },
+      { value: 'wall-light', icon: '◑' },
+      { value: 'electrical-panel', icon: '▦' },
+    ],
+  },
+  {
+    domain: 'plumbing', label: 'EAU',
+    items: [
+      { value: 'water-supply-cold', icon: '▽' },
+      { value: 'water-supply-hot', icon: '▼' },
+    ],
+  },
+  {
+    domain: 'drainage', label: 'EVAC',
+    items: [
+      { value: 'drain', icon: '⊗' },
+    ],
+  },
+  {
+    domain: 'heating', label: 'CHAUF',
+    items: [
+      { value: 'radiator', icon: '▬' },
+      { value: 'gas-supply', icon: '◆' },
+      { value: 'boiler', icon: '□' },
+    ],
+  },
+];
+
+function TechnicalSubSelector({
+  selected,
+  onSelect,
+}: {
+  selected: TechnicalPointType;
+  onSelect: (v: TechnicalPointType) => void;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex', flexDirection: 'column', gap: 1,
+        padding: '6px 0', borderTop: `1px solid ${colors.borderSubtle}`,
+        borderBottom: `1px solid ${colors.borderSubtle}`,
+      }}
+    >
+      {technicalDomainGroups.map((group) => (
+        <div key={group.domain}>
+          <div
+            style={{
+              fontSize: 6, color: colors.textDim, textAlign: 'center',
+              letterSpacing: 1, padding: '3px 0 1px',
+            }}
+          >
+            {group.label}
+          </div>
+          {group.items.map((item) => (
+            <button
+              key={item.value}
+              onClick={() => onSelect(item.value)}
+              title={TECHNICAL_POINT_DEFAULTS[item.value].label}
+              style={{
+                width: 44, height: 26, border: 'none', borderRadius: 6,
+                cursor: 'pointer', display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', gap: 0,
+                fontFamily: fonts.mono,
+                background: selected === item.value ? colors.accentBgSubtle : 'transparent',
+                color: selected === item.value ? colors.accent : colors.textDim,
+              }}
+            >
+              <span style={{ fontSize: 11 }}>{item.icon}</span>
+              <span style={{ fontSize: 5, letterSpacing: 0.3 }}>
+                {TECHNICAL_POINT_DEFAULTS[item.value].label.toUpperCase().slice(0, 8)}
+              </span>
+            </button>
+          ))}
+        </div>
+      ))}
     </div>
   );
 }

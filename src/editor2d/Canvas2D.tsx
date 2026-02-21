@@ -9,6 +9,7 @@ import { renderWalls } from './renderers/wallRenderer';
 import { renderOpenings } from './renderers/openingRenderer';
 import { renderLabels } from './renderers/labelRenderer';
 import { renderFurniture } from './renderers/furnitureRenderer';
+import { renderTechnicalPoints } from './renderers/technicalPointRenderer';
 import { renderTerrain } from './renderers/terrainRenderer';
 import { renderDrawingPreview } from './renderers/drawingPreview';
 import { renderDiffOverlay } from './renderers/diffOverlayRenderer';
@@ -66,6 +67,7 @@ export function Canvas2D({
   const addOpening = useFloorPlan((s) => s.addOpening);
   const addLabel = useFloorPlan((s) => s.addLabel);
   const addFurniture = useFloorPlan((s) => s.addFurniture);
+  const addTechnicalPoint = useFloorPlan((s) => s.addTechnicalPoint);
 
   const data = dataOverride ?? storeData;
 
@@ -74,7 +76,10 @@ export function Canvas2D({
   const setSelectedId = useEditor((s) => s.setSelectedId);
   const bgImage = useEditor((s) => s.bgImage);
   const showLabels = useEditor((s) => s.showLabels);
+  const showFurniture = useEditor((s) => s.showFurniture);
+  const showTechnical = useEditor((s) => s.showTechnical);
   const furnitureType = useEditor((s) => s.furnitureType);
+  const technicalPointType = useEditor((s) => s.technicalPointType);
 
   // Space bar for pan mode
   useEffect(() => {
@@ -125,7 +130,9 @@ export function Canvas2D({
     addOpening,
     addLabel,
     addFurniture,
+    addTechnicalPoint,
     furnitureType,
+    technicalPointType,
     setData,
     selectedId: readOnly ? null : selectedId,
     setSelectedId: readOnly ? () => {} : setSelectedId,
@@ -196,8 +203,12 @@ export function Canvas2D({
     renderWalls(ctx, data.walls, readOnly ? null : selectedId);
     renderOpenings(ctx, data.openings, data.walls, readOnly ? null : selectedId);
 
-    if (data.furniture?.length) {
+    if (showFurniture && data.furniture?.length) {
       renderFurniture(ctx, data.furniture, readOnly ? null : selectedId);
+    }
+
+    if (showTechnical && data.technicalPoints?.length) {
+      renderTechnicalPoints(ctx, data.technicalPoints, readOnly ? null : selectedId);
     }
 
     renderLabels(ctx, data.labels, readOnly ? null : selectedId, showLabels);
@@ -221,7 +232,7 @@ export function Canvas2D({
       ctx.fillText(`${Math.round(zoom * 100)}%`, W - 50, H - 10);
       ctx.restore();
     }
-  }, [data, drawing, selectedId, pan, zoom, showLabels, readOnly, diffOverlay]);
+  }, [data, drawing, selectedId, pan, zoom, showLabels, showFurniture, showTechnical, readOnly, diffOverlay]);
 
   useEffect(() => {
     render();
@@ -244,7 +255,7 @@ export function Canvas2D({
     ? 'default'
     : spaceHeld
       ? 'grab'
-      : tool === 'wall' || tool === 'label' || tool === 'furniture'
+      : tool === 'wall' || tool === 'label' || tool === 'furniture' || tool === 'technical'
         ? 'crosshair'
         : tool === 'select'
           ? 'default'

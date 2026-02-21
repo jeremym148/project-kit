@@ -1,10 +1,11 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useFloorPlan } from '../store/useFloorPlan';
 import { useEditor } from '../store/useEditor';
 import { useVersionStore } from '../store/useVersionStore';
 import type { ViewMode } from '../types/tools';
 import { exportProjectFile, importProjectFile, clearAutoSave } from '../utils/storage';
 import { colors, fonts } from '../styles/theme';
+import { PdfExportModal } from './PdfExportModal';
 
 const viewModes: ViewMode[] = ['2d', '3d', 'split'];
 
@@ -30,6 +31,10 @@ export function Header() {
   const toggleLabels = useEditor((s) => s.toggleLabels);
   const showCeiling = useEditor((s) => s.showCeiling);
   const toggleCeiling = useEditor((s) => s.toggleCeiling);
+  const showFurniture = useEditor((s) => s.showFurniture);
+  const toggleFurniture = useEditor((s) => s.toggleFurniture);
+  const showTechnical = useEditor((s) => s.showTechnical);
+  const toggleTechnical = useEditor((s) => s.toggleTechnical);
   const setShowImport = useEditor((s) => s.setShowImport);
   const setSelectedId = useEditor((s) => s.setSelectedId);
 
@@ -46,11 +51,12 @@ export function Header() {
   const windowCount = data.openings.filter((o) => o.type === 'window').length;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showPdfExport, setShowPdfExport] = useState(false);
 
   const handleNew = () => {
     if (!confirm('Créer un nouveau projet ? Les modifications non sauvegardées seront perdues.')) return;
     clearAutoSave();
-    reset({ walls: [], openings: [], labels: [], furniture: [] });
+    reset({ walls: [], openings: [], labels: [], furniture: [], technicalPoints: [] });
     setSelectedId(null);
   };
 
@@ -110,6 +116,16 @@ export function Header() {
         </button>
         <button onClick={handleSave} style={btnStyle}>
           Sauvegarder
+        </button>
+        <button
+          onClick={() => setShowPdfExport(true)}
+          style={{
+            padding: '6px 14px', border: `1px solid ${colors.accentBorder}`, borderRadius: 7,
+            background: colors.accentBgSubtle, color: colors.accent,
+            cursor: 'pointer', fontFamily: fonts.mono, fontSize: 10, fontWeight: 700,
+          }}
+        >
+          Exporter PDF
         </button>
         <input
           ref={fileInputRef}
@@ -188,6 +204,30 @@ export function Header() {
           }}
         >
           {showLabels ? '◉ Labels' : '○ Labels'}
+        </button>
+
+        <button
+          onClick={toggleFurniture}
+          style={{
+            padding: '6px 12px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7,
+            background: showFurniture ? colors.windowBg : 'rgba(255,255,255,0.04)',
+            color: showFurniture ? colors.window : colors.textMuted,
+            cursor: 'pointer', fontFamily: fonts.mono, fontSize: 10, fontWeight: 600,
+          }}
+        >
+          {showFurniture ? '◉ Meubles' : '○ Meubles'}
+        </button>
+
+        <button
+          onClick={toggleTechnical}
+          style={{
+            padding: '6px 12px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 7,
+            background: showTechnical ? colors.windowBg : 'rgba(255,255,255,0.04)',
+            color: showTechnical ? colors.window : colors.textMuted,
+            cursor: 'pointer', fontFamily: fonts.mono, fontSize: 10, fontWeight: 600,
+          }}
+        >
+          {showTechnical ? '◉ Technique' : '○ Technique'}
         </button>
 
         <button
@@ -293,6 +333,8 @@ export function Header() {
           <span>{windowCount} fenêtres</span>
         </div>
       </div>
+
+      {showPdfExport && <PdfExportModal onClose={() => setShowPdfExport(false)} />}
     </div>
   );
 }

@@ -119,5 +119,5 @@ export async function analyzeFloorPlan(
     message: `${walls.length} murs, ${doorCount} portes, ${windowCount} fenêtres, ${labels.length} pièces`,
   });
 
-  return { walls, openings, labels, furniture: [] };
+  return { walls, openings, labels, furniture: [], technicalPoints: [] };
 }

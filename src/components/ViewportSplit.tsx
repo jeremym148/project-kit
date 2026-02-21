@@ -64,7 +64,9 @@ export function ViewportSplit() {
             ? 'Cliquer → placer label'
             : tool === 'furniture'
               ? 'Cliquer → placer meuble'
-              : 'Sélection · Glisser · Suppr';
+              : tool === 'technical'
+                ? 'Cliquer → placer point technique'
+                : 'Sélection · Glisser · Suppr';
 
   // Side-by-side comparison layout
   if (isSideBySide) {
